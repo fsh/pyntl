@@ -1,0 +1,53 @@
+
+def __neg__(PyCTYPE self):
+  #MACRO CDEF_RES()
+  sig_on()
+  _ntlCTYPE_negate(res.val, self.val)
+  sig_off()
+  return res
+
+def __add__(PyCTYPE self, _arg):
+  #MACRO CONVERT_ARG()
+  #MACRO CDEF_RES()
+  sig_on()
+  _ntlCTYPE_add(res.val, self.val, arg.val)
+  sig_off()
+  return res
+
+def __radd__(PyCTYPE self, _arg):
+  #MACRO CONVERT_ARG()
+  #MACRO CDEF_RES()
+  sig_on()
+  _ntlCTYPE_add(res.val, arg.val, self.val)
+  sig_off()
+  return res
+
+def __sub__(PyCTYPE self, _arg):
+  #MACRO CONVERT_ARG()
+  #MACRO CDEF_RES()
+  sig_on()
+  _ntlCTYPE_sub(res.val, self.val, arg.val)
+  sig_off()
+  return res
+
+def __rsub__(PyCTYPE self, _arg):
+  #MACRO CONVERT_ARG()
+  #MACRO CDEF_RES()
+  sig_on()
+  _ntlCTYPE_sub(res.val, arg.val, self.val)
+  sig_off()
+  return res
+
+def __eq__(PyCTYPE self, _arg):
+  #MACRO CONVERT_ARG()
+  #MACRO CDEF_RES()
+  return self.val == arg.val
+
+def __neq__(PyCTYPE self, _arg):
+  #MACRO CONVERT_ARG()
+  #MACRO CDEF_RES()
+  return self.val != arg.val
+
+def __bool__(PyCTYPE self):
+  return not _ntlCTYPE_IsZero(self.val)
+

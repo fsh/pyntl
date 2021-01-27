@@ -1,0 +1,64 @@
+
+def __pow__(PyCTYPE self, _exp, _mod):
+  if _mod is not None:
+    raise NotImplementedError("XXX: not implemented yet")
+  #MACRO CDEF_RES()
+  cdef long exp = _exp
+  if exp < 0:
+    raise ValueError("exponent cannot be negative")
+  sig_on()
+  _ntlCTYPE_power(res.val, self.val, exp)
+  sig_off()
+  return res
+
+def __truediv__(PyCTYPE self, _arg):
+  #MACRO CONVERT_ARG()
+  #MACRO CDEF_RES()
+  cdef long check
+  sig_on()
+  check = _ntlCTYPE_divide(res.val, self.val, arg.val)
+  sig_off()
+  if not check:
+    raise ValueError("denominator does not divide numerator")
+  return res
+
+
+def __mod__(PyCTYPE self, _arg):
+  #MACRO CONVERT_ARG()
+  #MACRO CDEF_RES()
+  sig_on()
+  _ntlCTYPE_rem(res.val, self.val, arg.val)
+  sig_off()
+  return res
+
+def __divmod__(PyCTYPE self, _arg):
+  #MACRO CONVERT_ARG()
+  cdef PyCTYPE res_q = PyCTYPE.__new__(PyCTYPE)
+  cdef PyCTYPE res_r = PyCTYPE.__new__(PyCTYPE)
+  #IF HASCONTEXT
+  res_q.ctxt = self.ctxt
+  res_r.ctxt = self.ctxt
+  self.ctxt.restore()
+  #ENDIF
+  sig_on()
+  _ntlCTYPE_DivRem(res_q.val, res_r.val, self.val, arg.val)
+  sig_off()
+  return (res_q, res_r)
+
+def __floordiv__(PyCTYPE self, _arg):
+  #MACRO CONVERT_ARG()
+  #MACRO CDEF_RES()
+  sig_on()
+  _ntlCTYPE_div(res.val, self.val, arg.val)
+  sig_off()
+  return res
+
+def __lshift__(PyCTYPE self, long arg):
+  #MACRO CDEF_RES()
+  _ntlCTYPE_LeftShift(res.val, self.val, arg)
+  return res
+
+def __rshift__(PyCTYPE self, long arg):
+  #MACRO CDEF_RES()
+  _ntlCTYPE_RightShift(res.val, self.val, arg)
+  return res

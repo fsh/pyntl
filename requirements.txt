@@ -1,0 +1,2 @@
+cysignals==1.10.2
+Cython==3.0a6
