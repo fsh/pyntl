@@ -1,6 +1,12 @@
-* NTL Bindings for Python
+* PyNTL: Bindings for NTL
 
-https://libntl.org/
+[[https://libntl.org/]]
+
+It's used for playing around with number theory. Most of the bindings
+focuses on finite fields or polynomials over these.
+
+My own personal intended use case is for a hobby of sometimes playing
+in [[https://m13h.github.io/html/notes.html][CTFs]].
 
 * Status
 
@@ -132,136 +138,3 @@ Quirks and conveniences:
 
 ** Matrices
 
-* Notes to Self
-** Todo List
-*** TODO documentation
-*** TODO improve matrix wrappers
-*** DONE init poly/vec/mat from lists
-*** TODO poly/vec/mat slice indexing
-*** DONE generic power for ZZX
-*** TODO better template system (just leverage gcc -E?)
-*** TODO any_to_pythonstring -> PyString_from_any
-*** TODO options for formatted output
-*** DONE ZZ_from_PyLong
-*** TODO REPTYPE_from_PyObject? Fix the ugly mess that is type conversions.
-*** DONE assert that modulus is the same for modtypes
-*** TODO indexing/slicing of integers to access bits
-*** TODO prime generation/testing
-*** DONE irreducible polynomial testing
-*** TODO irreducible polynomial generation
-*** TODO LLL for ZZ matrices
-*** TODO smooth number test?
-*** TODO multiplicative group utility stuff (order, bsg, pohlig-hellman, etc.)
-*** TODO limit python ints in combination with NTL types to C longs?
-*** TODO more informative exceptions (type conversions etc)
-*** TODO actual tests?
-*** TODO better todo list
-** blah blah
-
-This dynamic type conversion thing needs to be solved. A /consistent/
-solution is needed.
-
-| to\from  | ZZ | ZZp | ZZpE | GF2 | GF2E | ZZX | ZZpX | ZZpEX | GF2X | GF2EX | VecXX | MatXX |
-|----------+----+-----+------+-----+------+-----+------+-------+------+-------+-------+-------|
-| ZZ       | *  | L   | C    | L   | C    | -   | -    | -     | C    | C     |       |       |
-| ZZp   c  | A  | *   | ?    | !   | !    |     |      | -     |      |       |       |       |
-| ZZpE  cx | A  | A=  | *    | !   | !    |     | A=   | -     |      |       |       |       |
-| GF2      | A  | !   | !    | *   | !    |     |      | !     |      |       |       |       |
-| GF2E  c  | A' | !   | !    | A   | *    |     |      | !     | A    |       |       |       |
-|----------+----+-----+------+-----+------+-----+------+-------+------+-------+-------+-------|
-| ZZX      | A  | !   | !    | !   | !    | *   | L    |       |      |       |       |       |
-| ZZpX  c  | A  | A=  | L    |     |      | A   | *    |       |      |       |       |       |
-| ZZpEX cx | A  | A=  |      |     |      |     |      | *     |      |       |       |       |
-| GF2X     | A' | !   |      | A   | L    |     |      |       | *    |       |       |       |
-| GF2EX c  | A' | !   |      |     |      |     |      |       |      | *     |       |       |
-|----------+----+-----+------+-----+------+-----+------+-------+------+-------+-------+-------|
-| VecXX    |    |     |      |     |      |     |      |       |      |       | *     |       |
-|----------+----+-----+------+-----+------+-----+------+-------+------+-------+-------+-------|
-| MatXX    |    |     |      |     |      |     |      |       |      |       |       | *     |
-
-** Dev Diary
-
-Irrelevant text I thought to write down while working on this. This
-doesn't belong here, it's too personal bloggy, but I don't have
-anywhere else to put it for now.
-
-- Python's =_PyLong_AsByteArray= has (in my opinion) bad semantics.
-  
-  A method for storing =PyLongObject= into a byte array has two
-  obvious use cases:
-
-  - data serialization, and
-  - extensions that want to convert Python's (slow) integers to some
-    external bigint format (e.g. NTL in this case) without relying on
-    the "morally private" internals of =_longintrepr.c=.
-
-  However, the provided method is very clunky in the latter case. If
-  an unsigned interpretation is desired it should simply give it,
-  without being "overly conscientious" and asserting that the number
-  is positive. The API user should be free to handle (or ignore) the
-  sign bit for (semantically) unsigned representations however they
-  choose.
-
-  As it is, you would have to either re-flip the bits of two's
-  complement output, or negate the number manually before extracting
-  the bytes (which would involve making an additional =PyLongObject=
-  copy).
-  
-  To avoid the copy, I implemented a hack of flipping the sign in the
-  structure if it's negative, and then flipping it back afterwards.
-  This negates the whole advantage of not relying on =_longintrepr.c=
-  internals, so could as well make something that copies out the limbs
-  directly.
-
-- Bug or not? Declaring two functions with the same name (but
-  different argument types) under the same =cdef extern from= works as
-  expected if its done in the same =.pxd= file. This enables the use
-  of C++ function overloading and everything is dandy. But if their
-  declaration is in two different =.pxd= files (one of which imports
-  the other), =cython= seems to get confused and acts as if only the
-  first definition existed, tho both of them should be "visible" to
-  the code?
-
-- An actual bug:
-
-  #+begin_src python
-  cdef void foo(LongAssignable& dest, long v):
-    dest = v # Doesn't work.
-    (&dest)[0] = v # Have to do this.
-  #+end_src
-
-- APIs are farts. Coming from other people they're disgusting, yet who
-  doesn't do an appreciative whiff when its their own.
-
-  I think the C type system (and by extension that of C++, Java, et
-  al) is actively harmful. It makes for awful APIs, it's the worst of
-  static typing. "Use the right tool for the job," they say, yet too
-  often C is the only tool available, the international pidgin English
-  of all computer programming. NTL's API is very much just C, and
-  carries on C's ethos (despite being written in C++). (=abort()= on
-  error, global state that needs management, tons of distinct types
-  that have similar functionality by the "copy-paste" method of doing
-  generics, and of course the mandatory homemade reimplementations of
-  =std::= stuff, and so on.)
-  
-  I have a dream of a meta-language for building library bindings out
-  of something like Haskell's typeclasses.
-
-  Meanwhile here in the real world, we have engineers who actually
-  solve problems.
-
-- Choice to make: whenever a binary operation is performed on an NTL
-  type and a Python =int=, it would simplify the code /a lot/ if I
-  demand the Python =int= be convertible to a C =long=. Cython favors
-  this conversion and NTL has a lot of specialization for long. If =x=
-  is an NTL integer, it would mean that =x + 3= would work as normal,
-  but =x + 3**99= would have to be made explicit with =x + ZZ(3**99)=.
-  It's not very Pythonic, but... Ugh. Wanting to handle both cases
-  where a Python =int= fits into a C =long= and not is making the
-  Cython code incredibly ugly if I'm going to keep the option only to
-  expose the specialized NTL methods.
-
-- Better to expose the lower level API (using global modulus), and
-  then have the auto-modulus API on top? Hm. Wish I'd thought of this
-  earlier.
- 

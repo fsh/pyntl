@@ -3,7 +3,7 @@ from ntl.all import *
 from pytest import fixture
 
 
-def test_basic_Zp_arithmetic():
+def test_basic_zp_arithmetic():
   a = PyZZ()
   g = PyZZ(7)
   assert g

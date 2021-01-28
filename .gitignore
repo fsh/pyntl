@@ -2,3 +2,8 @@
 *~
 *.pyc
 *.pyx
+/build/
+/dist/
+/ntl/*.cpp
+/ntl/*.so
+

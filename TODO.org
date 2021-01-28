@@ -1,0 +1,22 @@
+** TODO documentation
+** TODO improve matrix wrappers
+** DONE init poly/vec/mat from lists
+** TODO poly/vec/mat slice indexing
+** DONE generic power for ZZX
+** TODO better template system (just leverage gcc -E?)
+** TODO any_to_pythonstring -> PyString_from_any
+** TODO options for formatted output
+** DONE ZZ_from_PyLong
+** TODO REPTYPE_from_PyObject? Fix the ugly mess that is type conversions.
+** DONE assert that modulus is the same for modtypes
+** TODO indexing/slicing of integers to access bits
+** TODO prime generation/testing
+** DONE irreducible polynomial testing
+** TODO irreducible polynomial generation
+** TODO LLL for ZZ matrices
+** TODO smooth number test?
+** TODO multiplicative group utility stuff (order, bsg, pohlig-hellman, etc.)
+** TODO limit python ints in combination with NTL types to C longs?
+** TODO more informative exceptions (type conversions etc)
+** TODO actual tests?
+** TODO better todo list
