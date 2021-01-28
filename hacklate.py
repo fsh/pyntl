@@ -245,146 +245,35 @@ class Hacklate():
   
 
 
+# Avert your eyes. I will clean this up at some point.
 
+from ntl_types import type_translations
 
+src_dir = Path('ntl')
+templ_dir = Path('templates')
 
-# def dedent(n, txt):
-#   res = []
-#   for ln in txt.split('\n'):
-#     assert ln[:n].isspace()
-#     res.append(ln)
-#   return '\n'.join(res)
+def hacky_bullshit(hack, vals):
+  typname = vals['CTYPE']
+  pyx = src_dir / f'ntl_{typname}.pyx'
+  pxd = src_dir / f'ntl_{typname}.pxd'
 
-# def indent(n, txt):
-#   return '\n'.join(' '*n + ln for ln in txt.split('\n'))
+  # hacky template thing will check timestamp of files to test if
+  # regeneration is necessary.
+  hack.run(vals, output_dir=src_dir)
 
+hack = Hacklate(templ_dir / 'base_ring.hack')
+for typ in 'ZZ ZZ_p ZZ_pE GF2 GF2E'.split():
+  hacky_bullshit(hack, dict(CTYPE=typ, **type_translations[typ]))
 
-# def a():
-#   while not matches('#IF (.*)'):
-#     skip()
+hack = Hacklate(templ_dir / 'poly_ring.hack')
+for typ in 'ZZX ZZ_pX ZZ_pEX GF2X GF2EX'.split():
+  hacky_bullshit(hack, dict(CTYPE=typ, **type_translations[typ]))
 
-#   while not matches("#(ELIF|ELSE|ENDIF)"):
-#     pass
+hack = Hacklate(templ_dir / 'vec_types.hack')
+for typ in 'vec_ZZ vec_ZZ_p vec_ZZ_pE vec_GF2 vec_GF2E'.split():
+  hacky_bullshit(hack, dict(CTYPE=typ, **type_translations[typ]))
 
-
-# def active_if():
-#   while not matches(f"^[ \t]*#(ELIF|ELSE|ENDIF)"):
-#     passthrough
-
-#   while not matches("^[ \t]*#ENDIF"):
-#     skip
-  
-  
-
-# def _if(self, indent, expr):
-#   r"#IF (.*)"
-
-#   res = eval(expr, ctxt)
-
-#   if res:
-#     eval to elif/else/endif
-#   else:
-#     skip to elif/else/endif
-
-# class IfWatch:
-#   def _if(self, expr):
-#     r"#IF (.*)"
-#     if self.eval(expr):
-#       self.output_ln(f'# if {expr}')
-#       self.push(IfActive(self))
-#     else:
-#       self.push(IfPending(self))
-
-# class IfRunning:
-#   def __init__(active):
-#     self.active = active
-
-#   def default(self, ln):
-#     return ln if self.active else None
-
-#   def _elif(self, expr):
-#     r"#ELIF .*"
-#     if self.active:
-#       self.output_ln('# elif ... endif')
-#       return DeadIf()
-    
-#     if self.eval(expr):
-#       self.output_ln(f'# if ... elif {expr}')
-#       self.active = True
-
-#   def _else(self, indent):
-#     r"#ELSE"
-#     if self.active:
-#       self.output_ln('# else ... endif')
-#       return DeadIf()
-    
-#     self.output_ln(f'# if ... else')
-#     self.active = True
-#   def _endif(self):
-#     r"#ENDIF"
-#     return pop()
-  
-# class ActiveIf:
-#   def _elif(self, indent, expr):
-#     r"#ELIF .*"
-#   def _else(self, indent):
-#     r"#ELSE"
-#   def _endif(self):
-#     r"#ENDIF"
-#     self.output_ln('# endif')
-#     return None
-
-# class IfDone:
-#   def default(self, ln):
-#     return None
-
-#   def _endif(self):
-#     r"#ENDIF"
-#     raise StopIteration
-
-  
-# def _else(self):
-#   pass
-
-
-# def _save(self, indent, var):
-#   r"#SAVETO (.*)"
-
-#   self.ctxt[var] = []
-  
-#   def _saver(L):
-#     self.ctxt[var].append(L)
-#     return L
-  
-#   self.savers.append(_proc)
-#   self.add_hook(_proc)
-
-# def _endsave(self):
-#   fn = self.savers.pop()
-#   self.remove_hook(fn)
-  
-# def _eval(self, indent, expr):
-#   r"#EVAL (.*)"
-#   pass
-
-
-
-# class saver:
-#   def default(self, ln):
-#     assert ln.startswith(self.indent)
-#     self.ctxt[self.var].append(ln)
-    
-#   def _endsave(self):
-#     r"^([ \t]*)#ENDSAVE"
-
-#     self.ctxt[var] = lns
-  
-  
-# re_defmacro = re.compile(r'#DEFMACRO\n([\s\S]+?)#ENDMACRO\n')
-
-# # re_runmacro = re.compile(r'^([ \t]*)#RUNMACRO\s+(.*\S)\s*$', re.MULTILINE)
-# re_file = re.compile(r'^#FILE +(\S+)$', re.MULTILINE)
-# re_macros = re.compile(r'^([ \t]*)#(IF|ELIF|ELSE|ENDIF|MACRO)(?:[^\S\n]+(.*\S)[^\S\n]*)?$', re.MULTILINE)
-
-
+hack = Hacklate(templ_dir / 'mat_types.hack')
+for typ in 'mat_ZZ mat_ZZ_p mat_ZZ_pE mat_GF2 mat_GF2E'.split():
+  hacky_bullshit(hack, dict(CTYPE=typ, **type_translations[typ]))
 
