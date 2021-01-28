@@ -110,7 +110,18 @@ cdef extern from "ntl_wrap.h":
   #IF CTYPE == "ZZ_pX"
   long hash_ZZ_pX(const ZZ_pX_c&, const ZZ_c&)
   #ENDIF
-  
+
+  #IF CTYPE != "ZZX"
+  # berlekamp only for pX and GF2EX?
+  # void _ntlCTYPE_berlekamp "berlekamp"(Vec[Pair[CTYPE_c,long]]&, const CTYPE_c&, long verbose)
+  void _ntlCTYPE_CanZass "CanZass"(Vec[Pair[CTYPE_c,long]]&, const CTYPE_c&, long verbose)
+  void _ntlCTYPE_BuildIrred "BuildIrred"(CTYPE_c&, long n)
+  void _ntlCTYPE_BuildRandomIrred "BuildRandomIrred"(CTYPE_c&, const CTYPE_c&)
+  #IF CTYPE == "GF2X"
+  void _ntlCTYPE_BuildSparseIrred "BuildSparseIrred"(CTYPE_c&, long n)
+  #ENDIF
+  #ENDIF
+
   void _ntlCTYPE_conv "conv"(CTYPE_c&, const BASETYPE_c&)
   #IF CTYPE != "ZZX"
   void _ntlCTYPE_conv "conv"(CTYPE_c&, const ZZX_c&)
@@ -206,6 +217,37 @@ cdef class PyCTYPE_Class():
     res.val = CTYPE_c(INIT_MONO, deg, 1)
     sig_off()
     return res
+
+  #IF CTYPE != "ZZX"
+  
+  def irreducible(self, deg, kind='default'):
+    #MACRO CDEF_RES()
+    cdef long n
+    #IF CTYPE == "GF2X"
+    if kind == 'sparse':
+      n = <long>deg
+      _ntlCTYPE_BuildSparseIrred(res.val, n)
+      return res
+    #ENDIF
+    if kind == 'default':
+      n = <long>deg
+      _ntlCTYPE_BuildIrred(res.val, n)
+      return res
+
+    cdef PyCTYPE irr
+    try:
+      irr = deg
+    except TypeError:
+      irr = self.irreducible(deg, 'default')
+    
+    #IF HASCONTEXT
+    if deg.ctxt is not self.ctxt:
+      raise ValueError("modulus mismatch")
+    #ENDIF
+    _ntlCTYPE_BuildRandomIrred(res.val, irr.val)
+    return res
+
+  #ENDIF
 
   def __call__(self, arg=None):
     #IF HASCONTEXT
@@ -400,6 +442,9 @@ cdef class PyCTYPE():
     res.val = _ntlCTYPE_LeadCoeff(self.val)
     return res
 
+  def is_monic(PyCTYPE self):
+    return self.lead_coeff().is_one()
+
   #IF CTYPE == "ZZX"
   
   def content(PyCTYPE self):
@@ -414,14 +459,38 @@ cdef class PyCTYPE():
   
   #ELSE
 
-  def monic(PyCTYPE self):
+  def make_monic(PyCTYPE self):
     #MACRO CDEF_RES()
     res.val = self.val
     sig_on()
     _ntlCTYPE_MakeMonic(res.val)
     sig_off()
     return res
-  
+
+  def factor(PyCTYPE self, method=None, verbose=None):
+    if not self.is_monic():
+      return self.make_monic().factor(method=method, verbose=verbose)
+    #IF HASCONTEXT
+    self.ctxt.restore()
+    #ENDIF
+    cdef Vec[Pair[CTYPE_c,long]] facs
+    # if method == "berlekamp":
+    #   _ntlCTYPE_berlekamp(facs, self.val, 1 if verbose else 0)
+    # else:
+    _ntlCTYPE_CanZass(facs, self.val, 1 if verbose else 0)
+
+    cdef long n = facs.length()
+    cdef PyCTYPE tmp
+    res = []
+    for i in range(n):
+      tmp = PyCTYPE.__new__(PyCTYPE)
+      #IF HASCONTEXT
+      tmp.ctxt = self.ctxt
+      #ENDIF
+      tmp.val = facs[i].a
+      res.append( (tmp, facs[i].b) )
+    
+    return res
   #ENDIF
 
   def diff(PyCTYPE self):
@@ -431,8 +500,10 @@ cdef class PyCTYPE():
     sig_off()
     return res
 
-  def reverse(PyCTYPE self, long n):
+  def reverse(PyCTYPE self, long n=0):
     #MACRO CDEF_RES()
+    if n == 0:
+      n = len(self)
     sig_on()
     _ntlCTYPE_reverse(res.val, self.val, n)
     sig_off()

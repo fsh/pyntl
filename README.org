@@ -125,16 +125,79 @@ Quirks and conveniences:
 
 ** ZZ
 
+[todo]
+
 ** Finite scalar rings
 
-- Zn: /modulo n/ rings.
-- 
+[todo]
 
-** Polynomials over the integers (ZZ[X])
+** Polynomials
 
-** Polynomials over finite fields
+[todo]
 
+P, Q ∈ RX
+
+- RX.monomial(deg)
+
+  Returns the polynomial ~X**deg~ in the given ring.
+
+- RX.random(deg, monic=False)
+
+  Returns a random polynomial in the given ring.
+
+  *Finite characteristic only.*
+  
+- RX.irreducible(deg, kind='default')
+
+  Gives an irreducible polynomial.
+
+  - ~kind="default"~ uses NTL's default way of building polynomials.
+    ~deg~ is interpreted as the integer degree.
+  - ~kind="sparse"~ is only available for GF2X and gives the first
+    polynomial polynomial with fewest and lowest terms.
+  - ~kind="random"~ uses a given irreducible polynomial (~deg~
+    parameter) to build a another random irreducible polynomial of the
+    same degree. If ~deg~ is an integer, it will use ~RX(deg,
+    'default')~.
+
+  *Finite characteristic only.* (For now.)
+
+- P(x), len(P), ~P<<n~, ~P>>n~
+- lift()
+- diff(), reverse(n=0), truncate(n)
+- lead_coeff(), constant()
+- content(), primitive()
+- P.is_monic() -> bool
+
+  Tests whether ~P~ is monic. Equivalent to ~P.lead_coeff().is_one()~.
+
+- P.make_monic() -> poly
+
+  Forces the polynomial to be monic by multiplying by ~1/P.lead_coeff()~.
+
+  *Finite characteristic only.*
+
+- P.is_irreducible(method=0) -> bool
+
+  Tests whether ~P~ is irreducible.
+
+  The method argument is ignored for now.
+
+  *Finite characteristic only.*
+
+- P.factor(method='CanZass', verbose=False) -> [(poly, int)]
+
+  Factors a polynomial into irreducible factors.
+
+  Returns a list of tuple pairs giving the factor and its multiplicity.
+
+  The ~method~ argument is ignored for now. The ~verbose~ flag is
+  passed on to NTL.
+
+  *Finite characteristic only.*
+  
 ** Vectors
-
+[todo]
 ** Matrices
+[todo]
 
