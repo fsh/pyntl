@@ -95,6 +95,7 @@ cdef extern from "ntl_wrap.h":
   void GenPrime(ZZ_c&, long) # long err = 80
   void GenGermainPrime(ZZ_c&, long) # long err = 80
   long NumBits(const ZZ_c&)
+  void CRT(ZZ_c&, ZZ_c&, const ZZ_c&, const ZZ_c&)
   
   #ELSE
   void _ntlCTYPE_inv "inv"(CTYPE_c&, const CTYPE_c&)
@@ -161,7 +162,8 @@ cdef class PyCTYPE(object):
 
   #IF BASETYPE
   cpdef PyBASETYPE lift(PyCTYPE self)
-  cpdef PyCTYPE_Context parent(self)
+  cpdef PyCTYPE_Context ring(PyCTYPE self)
+  cpdef PyBASETYPE modulus(PyCTYPE self)
   #ENDIF
 
   #IF CTYPE == "ZZ"
@@ -341,9 +343,12 @@ cdef class PyCTYPE(object):
     res.val = _ntlCTYPE_rep(self.val)
     return res
 
-  cpdef PyCTYPE_Context parent(self):
+  cpdef PyCTYPE_Context ring(PyCTYPE self):
+    return self.ctxt
+
+  cpdef PyBASETYPE modulus(PyCTYPE self):
     return self.ctxt._mod
-  
+
   #ENDIF
   
 
@@ -396,15 +401,32 @@ cdef class PyCTYPE(object):
 
 
 
-  
+
+  #IF CTYPE == "ZZ_p"
+  def crt(PyZZ_p self, PyZZ_p arg):
+    cdef PyZZ zz_m = PyZZ.__new__(PyZZ)
+    zz_m.val = arg.ctxt._mod.val
+    
+    cdef ZZ_c zz_a = _ntlCTYPE_rep(arg.val)
+
+    sig_on()
+    CRT(zz_a, zz_m.val, _ntlCTYPE_rep(self.val), self.ctxt._mod.val)
+    sig_off()
+    
+    cdef PyZZ_p res = PyZZ_p.__new__(PyZZ_p)
+    res.ctxt = PyZZ_p_Context._get(zz_m)
+    res.ctxt.restore()
+    _ntlCTYPE_conv(res.val, zz_a)
+
+    return res
+  #ENDIF
+
   #IF INFINITE
 
   def __abs__(PyCTYPE self):
     #MACRO CDEF_RES()
     _ntlCTYPE_abs(res.val, self.val)
     return res
-
-  
   
   def __lt__(PyCTYPE self, _arg):
     #MACRO CONVERT_ARG()
@@ -423,7 +445,6 @@ cdef class PyCTYPE(object):
     return self.val > arg.val
 
   #ENDIF
-
   
   #IF CTYPE == "ZZ"
   
@@ -468,7 +489,7 @@ cdef class PyCTYPE(object):
     return (s, res_q)
 
   #ENDIF
-
+  
   #IF CTYPE == "ZZ"
   def __hash__(self):
     cdef long pym =  2305843009213693951
@@ -477,14 +498,12 @@ cdef class PyCTYPE(object):
   def __hash__(self):
     return hash(self.lift())
   #ENDIF
-
-
+  
 
   #IF CTYPE == "ZZ"
   cpdef object mod(PyZZ self, _arg):
     pass
   #ENDIF
-
 
 
   #IF CTYPE == "ZZ"

@@ -22,3 +22,17 @@
 * TODO more informative exceptions (type conversions etc)
 * TODO actual tests?
 * TODO better todo list
+
+* FIXMES
+  #+begin_example  
+>>> PyZZ_pX(rings[0], [0,1]) == PyZZ_pX(rings[1], [0,1])
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+  File "ntl/ntl_ZZ_pX.pyx", line 173, in ntl.ntl_ZZ_pX.PyZZ_pX.__eq__
+    cdef PyZZ_pX arg = self._convert_arg(_arg)
+  File "ntl/ntl_ZZ_pX.pyx", line 403, in ntl.ntl_ZZ_pX.PyZZ_pX._convert_arg
+    raise TypeError("base ring modulus does not match")
+TypeError: base ring modulus does not match
+  #+end_example
+
+  
