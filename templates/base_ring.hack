@@ -2,22 +2,18 @@
 assert CTYPE in 'ZZ ZZ_p ZZ_pE GF2 GF2E'.split()
 
 
-
-def CDEF_RES(typename='CTYPE', varname='self.ctxt'):
+def CDEF_RES(typename='CTYPE', varname='self.ctxt', target='res'):
   txt = ''
-  txt += f"cdef Py{typename} res = Py{typename}.__new__(Py{typename})\n"
-  txt += f"res.ctxt = {varname}\n" if HASCONTEXT else ''
+  txt += f"cdef Py{typename} {target} = Py{typename}.__new__(Py{typename})\n"
+  txt += f"{target}.ctxt = {varname}\n" if HASCONTEXT else ''
   txt += f"{varname}.restore()\n" if HASCONTEXT else ''
   return txt
 
-def CONVERT_ARG(typename='CTYPE', varname='_arg'):
+def CONVERT_ARG(typename='CTYPE', varname='_arg', target='arg'):
   txt = ''
-  txt += f"cdef Py{typename} arg = self._convert_arg({varname})\n"
-  txt += f"if arg is None:\n"
+  txt += f"cdef Py{typename} {target} = self._convert_arg({varname})\n"
+  txt += f"if {target} is None:\n"
   txt += f"  return NotImplemented\n"
-  # _convert_arg() takes care of this?
-  # txt += f"if arg.ctxt is not self.ctxt:\n" if BASETYPE else ''
-  # txt += f"  raise TypeError('modulus must match')\n" if BASETYPE else ''
   return txt
 
 SELF_INIT = 'self.ctxt = ctxt\n' if HASCONTEXT else ''
@@ -91,10 +87,14 @@ cdef extern from "ntl_wrap.h":
   void _ntlCTYPE_abs "abs"(CTYPE_c&, const CTYPE_c&)
   void _ntlCTYPE_power "power"(CTYPE_c&, const CTYPE_c&, long e)
 
+  void _ntlCTYPE_GCD "GCD"(CTYPE_c&, const CTYPE_c&, const CTYPE_c&)
+  void _ntlCTYPE_XGCD "XGCD"(CTYPE_c&, CTYPE_c&, CTYPE_c&, const CTYPE_c&, const CTYPE_c&)
+  
   long ProbPrime(const ZZ_c&, long)
   void RandomPrime(ZZ_c&, long)
   void GenPrime(ZZ_c&, long) # long err = 80
   void GenGermainPrime(ZZ_c&, long) # long err = 80
+  long NumBits(const ZZ_c&)
   
   #ELSE
   void _ntlCTYPE_inv "inv"(CTYPE_c&, const CTYPE_c&)
@@ -335,8 +335,8 @@ cdef class PyCTYPE(object):
   cpdef PyBASETYPE lift(PyCTYPE self):
     #IF SUBDOUBLE
     #MACRO CDEF_RES(BASETYPE, 'self.ctxt._mod.ctxt')
-    #ELIF BASETYPE
-    #MACRO CDEF_RES(BASETYPE)
+    #ELSE
+    cdef PyBASETYPE res = PyBASETYPE.__new__(PyBASETYPE)
     #ENDIF
     res.val = _ntlCTYPE_rep(self.val)
     return res
@@ -438,7 +438,35 @@ cdef class PyCTYPE(object):
 
   def is_prime(PyZZ self, long trials=10):
     return <bint>ProbPrime(self.val, trials)
-  
+
+  def bit_length(PyZZ self):
+    "Alias for `self.nbits()`"
+    return NumBits(self.val)
+
+  def nbits(PyZZ self):
+    """The number of digits needed in binary notation.
+
+    Invariant: 2**(n.nbits()-1) <= n < 2**n.nbits()
+    """
+    return NumBits(self.val)
+
+  def pow_div(PyZZ self, _arg):
+    """The number of times `d` divides `self` together with the quotient.
+
+    "s,q = n.pow_div(d)" means that n == d**s * q and k does not divide q.
+    """
+    #MACRO CONVERT_ARG()
+    #MACRO CDEF_RES(target='res_q')
+    #MACRO CDEF_RES(target='tmp')
+    res_q.val = self.val
+    cdef long s = 0
+    while True:
+      if not _ntlCTYPE_divide(tmp.val, res_q.val, arg.val):
+        break
+      res_q.val = tmp.val
+      s += 1
+    return (s, res_q)
+
   #ENDIF
 
   #IF CTYPE == "ZZ"
@@ -547,9 +575,13 @@ cdef class PyCTYPE(object):
     if arg is None:
       return
     if isinstance(arg, PyCTYPE):
+      #IF HASCONTEXT
+      if (<PyCTYPE>arg).ctxt is not self.ctxt:
+        raise TypeError("modulus does not match")
+      #ENDIF
+      self.val = (<PyCTYPE>arg).val
       return
-    cdef PyCTYPE tmp = self._convert_arg(arg)
-    if tmp is None:
-      raise TypeError("conversion failed")
-    self.val = tmp.val
+    if self._init_proj(arg):
+      return
+    raise TypeError("conversion failed")
 

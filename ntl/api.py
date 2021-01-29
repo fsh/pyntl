@@ -1,5 +1,7 @@
 
-from .all import *
+from .ntl_ZZ import *
+from .ntl_ZZ_p import *
+from .ntl_ZZX import *
 
 class ZRing(PyZZ_Class):
 

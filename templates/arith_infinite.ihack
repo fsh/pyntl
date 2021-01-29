@@ -62,3 +62,25 @@ def __rshift__(PyCTYPE self, long arg):
   #MACRO CDEF_RES()
   _ntlCTYPE_RightShift(res.val, self.val, arg)
   return res
+
+def gcd(PyCTYPE self, _arg):
+  #MACRO CONVERT_ARG()
+  #MACRO CDEF_RES()
+  sig_on()
+  _ntlCTYPE_GCD(res.val, self.val, arg.val)
+  sig_off()
+  return res
+
+def egcd(PyCTYPE self, _arg):
+  #MACRO CONVERT_ARG()
+  #IF CTYPE == "ZZX"
+  #MACRO CDEF_RES(BASETYPE, target='res_d')
+  #ELSE
+  #MACRO CDEF_RES(target='res_d')
+  #ENDIF
+  #MACRO CDEF_RES(target='res_s')
+  #MACRO CDEF_RES(target='res_t')
+  sig_on()
+  _ntlCTYPE_XGCD(res_d.val, res_s.val, res_t.val, self.val, arg.val)
+  sig_off()
+  return (res_d, res_s, res_t)

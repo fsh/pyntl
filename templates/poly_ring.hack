@@ -13,9 +13,6 @@ def CONVERT_ARG(typename='CTYPE', varname='_arg', target='arg'):
   txt += f"cdef Py{typename} {target} = self._convert_arg({varname})\n"
   txt += f"if {target} is None:\n"
   txt += f"  return NotImplemented\n"
-  # _convert_arg() takes care of this?
-  # txt += f"if arg.ctxt is not self.ctxt:\n" if HASCONTEXT else ''
-  # txt += f"  raise TypeError('modulus must match')\n" if HASCONTEXT else ''
   return txt
 
 SELF_INIT = 'self.ctxt = ctxt\n' if HASCONTEXT else ''
@@ -529,29 +526,7 @@ cdef class PyCTYPE():
     _ntlCTYPE_eval(res.val, self.val, arg.val)
     sig_off()
     return res
-      
-  def gcd(PyCTYPE self, _arg):
-    #MACRO CONVERT_ARG()
-    #MACRO CDEF_RES()
-    sig_on()
-    _ntlCTYPE_GCD(res.val, self.val, arg.val)
-    sig_off()
-    return res
-
-  def egcd(PyCTYPE self, _arg):
-    #MACRO CONVERT_ARG()
-    #IF CTYPE == "ZZX"
-    #MACRO CDEF_RES(BASETYPE, target='res_d')
-    #ELSE
-    #MACRO CDEF_RES(target='res_d')
-    #ENDIF
-    #MACRO CDEF_RES(target='res_s')
-    #MACRO CDEF_RES(target='res_t')
-    sig_on()
-    _ntlCTYPE_XGCD(res_d.val, res_s.val, res_t.val, self.val, arg.val)
-    sig_off()
-    return (res_d, res_s, res_t)
-
+  
   def is_irreducible(PyCTYPE self, long method=0):
     # method ignored for now.
     #IF CTYPE == "ZZX"
