@@ -1,7 +1,7 @@
 
 from .all import *
 
-class ZRing(object):
+class ZRing(PyZZ_Class):
 
   def __truediv__(self, _mod):
     mod = ZZ(_mod)

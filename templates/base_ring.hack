@@ -90,6 +90,12 @@ cdef extern from "ntl_wrap.h":
 
   void _ntlCTYPE_abs "abs"(CTYPE_c&, const CTYPE_c&)
   void _ntlCTYPE_power "power"(CTYPE_c&, const CTYPE_c&, long e)
+
+  long ProbPrime(const ZZ_c&, long)
+  void RandomPrime(ZZ_c&, long)
+  void GenPrime(ZZ_c&, long) # long err = 80
+  void GenGermainPrime(ZZ_c&, long) # long err = 80
+  
   #ELSE
   void _ntlCTYPE_inv "inv"(CTYPE_c&, const CTYPE_c&)
   void _ntlCTYPE_power "power"(CTYPE_c&, const CTYPE_c&, const ZZ_c&)
@@ -115,7 +121,7 @@ cdef extern from "ntl_wrap.h":
   void _ntlCTYPE_conv "conv"(ZZ_pE_c&, const ZZ_p_c&)
   #ENDIF
 
-#IF BASETYPE
+#IF HASCONTEXT
 
 cdef class PyCTYPE_Context(object):
   cdef CTYPE_Context_c ctxt
@@ -129,6 +135,11 @@ cdef class PyCTYPE_Context(object):
   cpdef PyBASETYPE modulus(self)
 
 cpdef PyCTYPE_Ring(arg)
+
+#ELIF CTYPE == "ZZ"
+
+cdef class PyZZ_Class():
+  pass
 
 #ENDIF
 
@@ -190,7 +201,7 @@ from .ntl_CTYPEX cimport PyCTYPEX, PyCTYPEX_Class
 
 
 
-#IF BASETYPE
+#IF HASCONTEXT
 
 cdef class PyCTYPE_Context():
 
@@ -244,6 +255,28 @@ cdef class PyCTYPE_Context():
 cpdef PyCTYPE_Ring(arg):
   cdef PyBASETYPE m = <PyBASETYPE>arg if isinstance(arg, PyBASETYPE) else PyBASETYPE(arg)
   return PyCTYPE_Context._get(m)
+
+#ELIF CTYPE == "ZZ"
+
+cdef class PyZZ_Class():
+  def __init__(PyZZ_Class self):
+    pass
+
+  def gen_prime(PyZZ_Class self, long bits):
+    #MACRO CDEF_RES()
+    sig_on()
+    GenPrime(res.val, bits)
+    sig_off()
+    return res
+
+  def gen_germain_prime(PyZZ_Class self, long bits):
+    #MACRO CDEF_RES()
+    sig_on()
+    GenGermainPrime(res.val, bits)
+    sig_off()
+    return res
+
+#ELIF CTYPE == "GF2"
 
 #ENDIF
 
@@ -391,10 +424,9 @@ cdef class PyCTYPE(object):
 
   #ENDIF
 
-
-
   
   #IF CTYPE == "ZZ"
+  
   cpdef bytes bytes(PyCTYPE self, str endian='big'):
     cdef bytevec data
     bytevec_from_ZZ(data, self.val)
@@ -403,6 +435,10 @@ cdef class PyCTYPE(object):
       reverse(data.begin(), data.end())
     c_ptr = <char*>&data[0]
     return c_ptr[:data.size()]
+
+  def is_prime(PyZZ self, long trials=10):
+    return <bint>ProbPrime(self.val, trials)
+  
   #ENDIF
 
   #IF CTYPE == "ZZ"
