@@ -444,6 +444,17 @@ cdef class PyCTYPE(object):
     #MACRO CONVERT_ARG()
     return self.val > arg.val
 
+  #ELIF CTYPE == "ZZ_p"
+
+  def __lt__(PyCTYPE self, _arg):
+    return self.lift() < _arg
+  def __gt__(PyCTYPE self, _arg):
+    return self.lift() > _arg
+  def __le__(PyCTYPE self, _arg):
+    return self.lift() <= _arg
+  def __ge__(PyCTYPE self, _arg):
+    return self.lift() >= _arg
+  
   #ENDIF
   
   #IF CTYPE == "ZZ"
