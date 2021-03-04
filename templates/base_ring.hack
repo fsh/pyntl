@@ -63,6 +63,10 @@ cdef extern from "ntl_wrap.h":
     bint operator>(CTYPE_c&)
     bint operator>=(CTYPE_c&)
     #ENDIF
+    #IF EXTENSION
+    @staticmethod
+    long degree()
+    #ENDIF
 
   long _ntlCTYPE_IsZero "IsZero"(const CTYPE_c&)
   long _ntlCTYPE_IsOne "IsOne"(const CTYPE_c&)
@@ -96,6 +100,8 @@ cdef extern from "ntl_wrap.h":
   void GenGermainPrime(ZZ_c&, long) # long err = 80
   long NumBits(const ZZ_c&)
   void CRT(ZZ_c&, ZZ_c&, const ZZ_c&, const ZZ_c&)
+  long bit(const ZZ_c&, long)
+  long SetBit(ZZ_c&, long)
   
   #ELSE
   void _ntlCTYPE_inv "inv"(CTYPE_c&, const CTYPE_c&)
@@ -174,6 +180,10 @@ cdef class PyCTYPE(object):
   cpdef object mod(PyCTYPE self, _arg)
   #ENDIF
 
+  #IF CTYPE == "ZZ" or EXTENSION
+  cdef PyCTYPE _slice(PyCTYPE self, slice idx)
+  #ENDIF
+
   cdef bint _init_lift(PyCTYPE self, object arg)
   cdef bint _init_proj(PyCTYPE self, object arg)
 
@@ -197,6 +207,9 @@ from .ntl_ZZ_pE cimport *
 #ENDIF
 #IF CTYPE == "GF2"
 from .ntl_GF2E cimport *
+#ENDIF
+#IF EXTENSION
+from .ntl_BASETYPE cimport *
 #ENDIF
 from .ntl_CTYPEX cimport PyCTYPEX, PyCTYPEX_Class
 
@@ -615,3 +628,62 @@ cdef class PyCTYPE(object):
       return
     raise TypeError("conversion failed")
 
+
+  #IF CTYPE == "ZZ" or EXTENSION
+  def __iter__(self):
+    for i in range(len(self)):
+      yield self[i]
+  
+  def __len__(PyCTYPE self):
+    #IF CTYPE == "ZZ"
+    return NumBits(self.val)
+    #ELSE
+    self.ctxt.restore()
+    return CTYPE_c.degree()
+    #ENDIF
+    
+  def __getitem__(PyCTYPE self, _arg):
+    if isinstance(_arg, slice):
+      return self._slice(_arg)
+    cdef long n = len(self)
+    cdef long idx = _arg
+    if idx < 0:
+      idx = n + idx
+    if idx < 0:
+      raise IndexError("out of bounds")
+    #IF CTYPE == "ZZ"
+    return <bint>bit(self.val, idx)
+    #ELSE
+    if idx >= n:
+      raise IndexError("out of bounds")
+    #IF CTYPE == "GF2E"
+    cdef PyGF2 res = PyGF2.__new__(PyGF2)
+    #ELSE
+    cdef PyZZ_p res = PyZZ_p.__new__(PyZZ_p)
+    res.ctxt = self.ctxt._mod.ctxt
+    res.ctxt.restore()
+    #ENDIF
+    res.val = coeff(_ntlCTYPE_rep(self.val), idx)
+    return res
+    #ENDIF
+
+  cdef PyCTYPE _slice(PyCTYPE self, slice idx):
+    #MACRO CDEF_RES()
+    cdef long a, b, s
+    a,b,s = idx.indices(len(self))
+    #IF CTYPE == "ZZ"
+    for i in range(a,b,s):
+      if bit(self.val, i):
+        SetBit(res.val, i)
+    #ELSE
+    cdef BASETYPE_c tmp
+    tmp.SetLength((b-a)//s)
+    cdef long j = 0
+    for i in range(a,b,s):
+      tmp[j] = _ntlCTYPE_rep(self.val)[i]
+      j += 1
+    _ntlCTYPE_conv(res.val, tmp)
+    #ENDIF
+    return res
+  #ENDIF
+    

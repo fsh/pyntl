@@ -80,7 +80,9 @@ cdef extern from "ntl_wrap.h":
   void _ntlCTYPE_power "power"(CTYPE_c&, const CTYPE_c&, long e)
 
   long _ntlCTYPE_deg "deg"(const CTYPE_c&)
+  long deg(const CTYPE_c&)
   BASETYPE_c _ntlCTYPE_coeff "coeff"(const CTYPE_c&, long)
+  BASETYPE_c coeff(const CTYPE_c&, long)
   BASETYPE_c _ntlCTYPE_LeadCoeff "LeadCoeff"(const CTYPE_c&)
   BASETYPE_c _ntlCTYPE_ConstTerm "ConstTerm"(const CTYPE_c&)
   void _ntlCTYPE_diff "diff"(CTYPE_c&, const CTYPE_c&)
@@ -148,7 +150,7 @@ cdef class PyCTYPE(object):
   cdef bint _init_from_seq(PyCTYPE self, arg)
   
   cpdef long deg(PyCTYPE self)
-  cdef _slice(PyCTYPE self, slice idx)
+  cdef PyCTYPE _slice(PyCTYPE self, slice idx)
 
   cpdef bint is_zero(PyCTYPE self)
   cpdef bint is_one(PyCTYPE self)
@@ -421,7 +423,7 @@ cdef class PyCTYPE():
     res.val = _ntlCTYPE_coeff(self.val, idx)
     return res
 
-  cdef _slice(PyCTYPE self, slice idx):
+  cdef PyCTYPE _slice(PyCTYPE self, slice idx):
     cdef long a, b, s
     a,b,s = idx.indices(_ntlCTYPE_deg(self.val) + 1)
     #MACRO CDEF_RES()
@@ -430,6 +432,7 @@ cdef class PyCTYPE():
     for i in range(a,b,s):
       res.val[j] = self.val[i]
       j += 1
+    res.val.normalize()
     return res
 
   #IF CTYPE == "ZZ_pX"
