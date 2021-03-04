@@ -36,6 +36,8 @@ from .ntl_common cimport *
 
 #IF CTYPE != "ZZ"
 from .ntl_ZZ cimport *
+#ELSE
+from .ntl_GF2 cimport *
 #ENDIF
 #IF CTYPE == "GF2E"
 from .ntl_GF2 cimport *
@@ -98,13 +100,21 @@ cdef extern from "ntl_wrap.h":
   void RandomPrime(ZZ_c&, long)
   void GenPrime(ZZ_c&, long) # long err = 80
   void GenGermainPrime(ZZ_c&, long) # long err = 80
-  long NumBits(const ZZ_c&)
   void CRT(ZZ_c&, ZZ_c&, const ZZ_c&, const ZZ_c&)
+  
+  long NumBits(const ZZ_c&)
   long bit(const ZZ_c&, long)
   long SetBit(ZZ_c&, long)
+  void bit_and(ZZ_c&, const ZZ_c&, const ZZ_c&)
+  void bit_or(ZZ_c&, const ZZ_c&, const ZZ_c&)
+  void bit_xor(ZZ_c&, const ZZ_c&, const ZZ_c&)
+  long weight(const ZZ_c&)
   void ZZFromBytes(ZZ_c&, const unsigned char*, long)
   long NumBytes(const ZZ_c&)
-  
+  #IF CTYPE == "ZZ"
+  long rep(const GF2_c&)
+  #ENDIF
+
   #ELSE
   void _ntlCTYPE_inv "inv"(CTYPE_c&, const CTYPE_c&)
   void _ntlCTYPE_power "power"(CTYPE_c&, const CTYPE_c&, const ZZ_c&)
@@ -163,8 +173,7 @@ cdef class PyCTYPE(object):
   #IF CTYPE == "ZZ"
   @staticmethod
   cdef PyZZ _convert_arg_zz(object arg)
-  @staticmethod
-  cdef PyCTYPE _from_bytes(bytes data, str endian=*)
+  cdef bint _init_bytes(PyCTYPE self, bytes data, str endian)
   #ENDIF
   
   cpdef bint is_zero(self)
@@ -216,7 +225,6 @@ from .ntl_GF2E cimport *
 from .ntl_BASETYPE cimport *
 #ENDIF
 from .ntl_CTYPEX cimport PyCTYPEX, PyCTYPEX_Class
-
 
 
 
@@ -476,11 +484,14 @@ cdef class PyCTYPE(object):
   
   #IF CTYPE == "ZZ"
 
-  def from_bytes(data, endian='big'):
-    return PyZZ._from_bytes(data, endian)
-  
   @staticmethod
-  cdef PyCTYPE _from_bytes(bytes data, str endian='big'):
+  def from_bytes(data, endian='big'):
+    #MACRO CDEF_RES()
+    if res._init_bytes(data, endian):
+      return res
+    return None
+  
+  cdef bint _init_bytes(PyZZ self, bytes data, str endian):
     cdef unsigned char *p
     cdef bytes tmp
     if not endian or endian == 'big':
@@ -490,9 +501,8 @@ cdef class PyCTYPE(object):
       p = data
     else:
       raise ValueError("endian must be 'big' or 'little'")
-    #MACRO CDEF_RES()
-    ZZFromBytes(res.val, data, len(data))
-    return res
+    ZZFromBytes(self.val, data, len(data))
+    return True
 
   cpdef bytes bytes(PyCTYPE self, str endian='big'):
     cdef bytevec data
@@ -541,6 +551,40 @@ cdef class PyCTYPE(object):
     else:
       raise ValueError("order must be one of 'lsb', 'msb', 'big', or 'little'")
 
+  def __or__(PyZZ self, _arg):
+    #MACRO CONVERT_ARG()
+    #MACRO CDEF_RES()
+    sig_on()
+    bit_or(res.val, self.val, arg.val)
+    sig_off()
+    return res
+
+  def __and__(PyZZ self, _arg):
+    #MACRO CONVERT_ARG()
+    #MACRO CDEF_RES()
+    sig_on()
+    bit_and(res.val, self.val, arg.val)
+    sig_off()
+    return res
+
+  def __xor__(PyZZ self, _arg):
+    #MACRO CONVERT_ARG()
+    #MACRO CDEF_RES()
+    sig_on()
+    bit_xor(res.val, self.val, arg.val)
+    sig_off()
+    return res
+
+  def __ror__(PyZZ self, _arg):
+    return self.__or__(_arg)
+  def __rand__(PyZZ self, _arg):
+    return self.__and__(_arg)
+  def __rxor__(PyZZ self, _arg):
+    return self.__xor__(_arg)
+
+  def weight(PyZZ self):
+    return weight(self.val)
+
   def pow_div(PyZZ self, _arg):
     """The number of times `d` divides `self` together with the quotient.
 
@@ -581,7 +625,6 @@ cdef class PyCTYPE(object):
   cdef PyZZ _convert_arg_zz(object arg):
     if isinstance(arg, PyZZ):
       return arg
-
     cdef PyZZ res = PyZZ.__new__(PyZZ)
     if not ZZ_from_PyLong(res.val, arg):
       return None
@@ -592,7 +635,9 @@ cdef class PyCTYPE(object):
     assert False
 
   # projected init: restricted <-- general
-  # ZZ <-- int
+  #
+  # The only exception is GF2 -> ZZ
+  # ZZ <-- int, GF2
   # ZZ_p <-- int, ZZ
   # ZZ_pE <-- int, ZZ, ZZ_p, ZZ_pX
   # GF2 <-- int, ZZ
@@ -601,8 +646,9 @@ cdef class PyCTYPE(object):
     #IF CTYPE == "ZZ"
     if isinstance(arg, int):
       return ZZ_from_PyLong(self.val, arg)
-    if isinstance(arg, bytes):
-      return PyZZ._from_bytes(arg, 'big')
+    if isinstance(arg, PyGF2):
+      self.val = rep((<PyGF2>arg).val)
+      return True
     #ELSE
 
     cdef ZZ_c tmp
@@ -672,6 +718,11 @@ cdef class PyCTYPE(object):
       #ENDIF
       self.val = (<PyCTYPE>arg).val
       return
+    #IF CTYPE == "ZZ"
+    if isinstance(arg, bytes):
+      self._init_bytes(arg, 'big')
+      return
+    #ENDIF
     if self._init_proj(arg):
       return
     raise TypeError("conversion failed")
