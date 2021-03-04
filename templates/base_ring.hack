@@ -102,6 +102,8 @@ cdef extern from "ntl_wrap.h":
   void CRT(ZZ_c&, ZZ_c&, const ZZ_c&, const ZZ_c&)
   long bit(const ZZ_c&, long)
   long SetBit(ZZ_c&, long)
+  void ZZFromBytes(ZZ_c&, const unsigned char*, long)
+  long NumBytes(const ZZ_c&)
   
   #ELSE
   void _ntlCTYPE_inv "inv"(CTYPE_c&, const CTYPE_c&)
@@ -116,7 +118,7 @@ cdef extern from "ntl_wrap.h":
   cdef cppclass CTYPE_Context_c "CTYPEContext":
     CTYPE_Context_c()
     CTYPE_Context_c(const BASETYPE_c&)
-    void restore()  
+    void restore()
   #ENDIF
 
 
@@ -161,8 +163,10 @@ cdef class PyCTYPE(object):
   #IF CTYPE == "ZZ"
   @staticmethod
   cdef PyZZ _convert_arg_zz(object arg)
+  @staticmethod
+  cdef PyCTYPE _from_bytes(bytes data, str endian=*)
   #ENDIF
-
+  
   cpdef bint is_zero(self)
   cpdef bint is_one(self)
 
@@ -471,7 +475,25 @@ cdef class PyCTYPE(object):
   #ENDIF
   
   #IF CTYPE == "ZZ"
+
+  def from_bytes(data, endian='big'):
+    return PyZZ._from_bytes(data, endian)
   
+  @staticmethod
+  cdef PyCTYPE _from_bytes(bytes data, str endian='big'):
+    cdef unsigned char *p
+    cdef bytes tmp
+    if not endian or endian == 'big':
+      tmp = data[::-1]
+      p = tmp
+    elif endian == 'little':
+      p = data
+    else:
+      raise ValueError("endian must be 'big' or 'little'")
+    #MACRO CDEF_RES()
+    ZZFromBytes(res.val, data, len(data))
+    return res
+
   cpdef bytes bytes(PyCTYPE self, str endian='big'):
     cdef bytevec data
     bytevec_from_ZZ(data, self.val)
@@ -495,10 +517,34 @@ cdef class PyCTYPE(object):
     """
     return NumBits(self.val)
 
+  def bits(self, order='lsb', size=None):
+    cdef long n = self.nbits()
+    cdef long high = n if size is None else size
+    cdef long take = min(high, n)
+    cdef long i
+    if order == 'lsb' or order == 'little':
+      i = 0
+      while i < take:
+        yield bit(self.val, i)
+        i += 1
+      while i < high:
+        yield 0
+        i += 1
+    elif order == 'msb' or order == 'big':
+      i = high - 1
+      while i >= take:
+        yield 0
+        i -= 1
+      while i >= 0:
+        yield bit(self.val, i)
+        i -= 1
+    else:
+      raise ValueError("order must be one of 'lsb', 'msb', 'big', or 'little'")
+
   def pow_div(PyZZ self, _arg):
     """The number of times `d` divides `self` together with the quotient.
 
-    "s,q = n.pow_div(d)" means that n == d**s * q and k does not divide q.
+    "s,q = n.pow_div(d)" means that n == d**s * q and d does not divide q.
     """
     #MACRO CONVERT_ARG()
     #MACRO CDEF_RES(target='res_q')
@@ -555,6 +601,8 @@ cdef class PyCTYPE(object):
     #IF CTYPE == "ZZ"
     if isinstance(arg, int):
       return ZZ_from_PyLong(self.val, arg)
+    if isinstance(arg, bytes):
+      return PyZZ._from_bytes(arg, 'big')
     #ELSE
 
     cdef ZZ_c tmp
@@ -686,4 +734,4 @@ cdef class PyCTYPE(object):
     #ENDIF
     return res
   #ENDIF
-    
+
