@@ -167,12 +167,24 @@ static void mul_by_elts(T& dest, T const& a, T const& b) {
 
 
 /* Python hashing. */
-const long hash_mod = 2305843009213693951;
+const uint64_t hash_mod = 2305843009213693951;
 
-static long hash_ZZX(ZZX const& src) {
+static uint64_t ntl_hash(GF2X const& src) {
+  bytes_t scratch(NumBytes(src));
+  BytesFromGF2X(&scratch[0], src, scratch.size());
   long h = 0;
+  for(uint8_t b: scratch) {
+    h <<= 8;
+    h += b;
+    h %= hash_mod;
+  }
+  return h;
+}
+
+static uint64_t ntl_hash(ZZX const& src) {
+  uint64_t h = 0;
   for (auto i = 0; i <= deg(src); ++i) {
-    h *= 257;
+    h *= 7;
     h += rem(src[i], hash_mod);
   }
   return h;

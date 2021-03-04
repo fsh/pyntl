@@ -14,8 +14,7 @@ class ZRing(PyZZ_Class):
 
   @property
   def P(self):
-    return PolyRing(PyZZX_Class())
+    return PyZZX_Class()
 
 ZZ = ZRing()
-
 

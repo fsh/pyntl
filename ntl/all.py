@@ -24,3 +24,5 @@ from .ntl_mat_GF2 import *
 from .ntl_mat_GF2E import *
 
 from .api import ZZ
+
+GF2X = PyGF2X_Class()

@@ -101,9 +101,10 @@ cdef extern from "ntl_wrap.h":
   void _ntlCTYPE_eval "eval"(BASETYPE_c&, const CTYPE_c&, const BASETYPE_c&)
   #IF CTYPE == "GF2X"
   long _ntlCTYPE_weight "weight"(const CTYPE_c&)
+  uint64_t ntl_hash(const GF2X_c&)
   #ENDIF
 
-  long hash_ZZX(const ZZX_c&)
+  uint64_t ntl_hash(const ZZX_c&)
   #IF CTYPE == "ZZ_pX"
   long hash_ZZ_pX(const ZZ_pX_c&, const ZZ_c&)
   #ENDIF
@@ -147,7 +148,7 @@ cdef class PyCTYPE(object):
   cdef bint _init_from_seq(PyCTYPE self, arg)
   
   cpdef long deg(PyCTYPE self)
-  # cpdef PyVecCTYPE vector(PyCTYPE self)
+  cdef _slice(PyCTYPE self, slice idx)
 
   cpdef bint is_zero(PyCTYPE self)
   cpdef bint is_one(PyCTYPE self)
@@ -253,6 +254,19 @@ cdef class PyCTYPE_Class():
     return PyCTYPE(arg)
     #ENDIF
 
+  #IF not BASETYPE.endswith("E")
+  def __truediv__(self, other):
+    return self.mod(other)
+
+  def mod(self, other):
+    #IF CTYPE == 'GF2X'
+    return PyGF2E_Ring(other)
+    #ELIF CTYPE == 'ZZ_pX' or CTYPE == 'ZZX'
+    return PyZZ_pE_Ring(other)
+    #ENDIF
+  #ENDIF
+
+  
 
 
 cdef class PyCTYPE():
@@ -393,9 +407,9 @@ cdef class PyCTYPE():
     return _ntlCTYPE_deg(self.val)
 
   
-  def __getitem__(self, _key):
+  def __getitem__(PyCTYPE self, _key):
     if isinstance(_key, slice):
-      return self.vector()[_key]
+      return self._slice(_key)
     cdef long n = len(self)
     cdef long idx = _key
     if idx < 0:
@@ -407,11 +421,16 @@ cdef class PyCTYPE():
     res.val = _ntlCTYPE_coeff(self.val, idx)
     return res
 
-
-  # cpdef PyVecCTYPE vector(PyCTYPE self):
-  #   #MACRO setup_res("VecCTYPE")
-  #   _ntlCTYPE_conv(res.val, self.val)
-  #   return res
+  cdef _slice(PyCTYPE self, slice idx):
+    cdef long a, b, s
+    a,b,s = idx.indices(_ntlCTYPE_deg(self.val) + 1)
+    #MACRO CDEF_RES()
+    cdef long j = 0
+    res.val.SetLength((b-a)//s)
+    for i in range(a,b,s):
+      res.val[j] = self.val[i]
+      j += 1
+    return res
 
   #IF CTYPE == "ZZ_pX"
   def lift(PyCTYPE self):
@@ -420,12 +439,12 @@ cdef class PyCTYPE():
     return 
   #ENDIF
 
-  #IF CTYPE == "ZZX" or CTYPE == "ZZ_pX"
+  #IF CTYPE == "ZZX" or CTYPE == "ZZ_pX" or CTYPE == "GF2X"
   def __hash__(PyCTYPE self):
     #IF HASCONTEXT
     return hash_ZZ_pX(self.val, self.ctxt._mod.val)
     #ELSE
-    return hash_ZZX(self.val)
+    return ntl_hash(self.val)
     #ENDIF
   #ENDIF
 

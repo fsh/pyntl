@@ -211,6 +211,11 @@ cdef class PyCTYPE():
     if arg is None:
       self.val.SetLength(length)
       return
+
+    if isinstance(arg, PyBASETYPEX):
+      _ntlCTYPE_conv(self.val, (<PyBASETYPEX>arg).val)
+      return
+    
     if isinstance(arg, PyCTYPE):
       #IF HASCONTEXT
       if (<PyCTYPE>arg).ctxt is not self.ctxt:
@@ -249,7 +254,7 @@ cdef class PyCTYPE():
   
   def __getitem__(self, _key):
     if isinstance(_key, slice):
-      return self.vector()[_key]
+      raise NotImplementedError("XXX")
     cdef long n = self.val.length()
     cdef long idx = _key
     if idx < 0:
