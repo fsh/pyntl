@@ -834,3 +834,12 @@ cdef class PyCTYPE(object):
     return res
   #ENDIF
 
+  #IF EXTENSION
+  def __lshift__(PyCTYPE self, _arg):
+    cdef PyZZ arg = PyZZ._convert_arg_zz(_arg)
+    return self * self.ctxt.X**arg
+
+  def __rshift__(PyCTYPE self, _arg):
+    cdef PyZZ arg = PyZZ._convert_arg_zz(_arg)
+    return self * self.ctxt.X**-arg
+  #ENDIF

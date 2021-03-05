@@ -583,7 +583,6 @@ cdef class PyCTYPE():
     # Commutative.
     return self.__mul__(_arg)
 
-
   #IF CTYPE in 'ZZX ZZ_pX GF2X'.split()
   cpdef object mod(PyCTYPE self, _arg):
     #IF CTYPE == 'GF2X'
