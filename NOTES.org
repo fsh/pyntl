@@ -109,3 +109,6 @@ solution is needed.
   then have the auto-modulus API on top? Hm. Wish I'd thought of this
   earlier.
 
+- 2021-03-05: really want to rewrite so there's only 5 base extension
+  modules: zz, gf_p, gf_pn, gf_2, gf_2n.
+  

@@ -1,12 +1,12 @@
-* PyNTL: Bindings for NTL
+* PyNTL: bindings for NTL plus extras
 
 [[https://libntl.org/]]
 
-It's used for playing around with number theory. Most of the bindings
-focuses on finite fields or polynomials over these.
-
-My own personal intended use case is for a hobby of sometimes playing
-in [[https://m13h.github.io/html/notes.html][CTFs]].
+This is currently just a personal project for playing around with
+number theory and cryptography constructs. My own personal intended
+use case is for a hobby of sometimes playing in [[https://m13h.github.io/html/notes.html][CTFs]]. It re-implements
+some small subset of functionality from SageMath, with tweaks to API
+here and there according to how I see fit.
 
 * Status
 
@@ -16,61 +16,74 @@ in [[https://m13h.github.io/html/notes.html][CTFs]].
   rings," their univariate polynomials, vectors and matrices over
   them.
   
-- True alpha: proof-of-concept level of code quality, API changes over night, Python will core
-  dump on anything unexpected.
+- True alpha: proof-of-concept level of code quality, API changes over
+  night, Python will core dump on anything unexpected.
 
-- =lzz_p= related types not wrapped yet. No plans to wrap any of the
-  floating precision types.
+- =lzz_p= related types not wrapped yet. No current plans to wrap any
+  of the floating precision types.
 
-- Vector and matrix functionality is minimal.
+- Vector and matrix functionality is minimal (WIP), and will probably
+  never be as good or convenient as numpy's.
 
-- Nearly none of the actual meaty algorithms are interfaced yet.
+- Few of the actual meaty useful number theoretic algorithms are
+  interfaced yet.
 
 * Basic Usage
 
 [TODO]
 
 #+begin_src python
-from ntl.all import ZZ
+  from ntl.all import ZZ
 
-# ZZ is the ring of integers and the main convenience interface.
+  # ZZ is the ring of integers and the main convenience interface.
 
-# You can do ZZ/n to make a ring of integers modulo n:
-R = ZZ/17
+  # ZZ has some extra functionality to work directly with the number's
+  # bits:
+  assert ZZ(0xffff)[8::2] == 0x5500
 
-# Getting elements in this ring:
-a = R(5)
+  # ZZ/n represents the quotient ring ℤ/nℤ.
+  R = ZZ/17
 
-# Usual arithmetic should work, all being modulo 17.
-print(a**4 * (a - 1))
+  # Getting elements in this ring:
+  a = R(5)
 
-print(1/R(2)) # Division modulo 17.
+  print("regular arithmetic:", a**512 * (a - 1))
+  print("division modulo 17:", a/6)
 
-# Polynomial rings are made with `.P` (API subject to change):
+  # Polynomial rings are made with `.P` or `.Polynomial`:
 
-Rx = R.P # Polynomials over F.
+  Rx = R.P # Polynomials over F.
 
-# Lists can be converted to polynomials, constant term first, lead term last.
-# So [3,2,1] represents x**2 + 2*x**2 + 1
+  # Lists can be converted to polynomials, constant term first, lead
+  # term last. So [3,2,1] represents 3 + 2*x + x**2.
 
-x = Rx([0, 1]) # Defining the polynomial `x`.
+  x = Rx([0, 1]) # Defining the polynomial `x`.
 
-P = (x**2 + 2) * (x - 1)
-Q = (x**7 - 1) * (x**2 - 1)
+  P = (x**2 + 2) * (x - 1)
+  Q = (x**7 - 1) * (x**2 - 1)
 
-print(P.gcd(Q)) # Polynomial GCD.
+  print(P.gcd(Q)) # Polynomial GCD.
 
-# And so forth.
+  # Polynomial slicing works, but not quite like integer bits.
 
+  assert P[1:3] == P[1] + P[2] * x
+
+  # Polynomials and extensions over GF2 also have a lot of convenience
+  # functionality for treating them as "vectors of bits representing
+  # integers."
+
+  p = GF2.P(0xb) # 1 + x**2 + x**3
+
+  assert p + 0xb == 0
 #+end_src
 
-* Why Not Just Use Sage?
+* Why Not Just Use SageMath?
 
 Actually, you're right! If you need anything in this library, you are
 probably better off using Sage instead.
 
 There's simply no comparison. Sage also embeds the FLINT library,
-which I believe is somewhat leaner for smaller moduli.
+which I believe is somewhat leaner for small moduli.
 
 Also, Sage isn't merely a [[https://doc.sagemath.org/html/en/reference/spkg/][kitchensink of libraries]], it has several
 special advantages that /cannot/ be replicated in regular CPython by
@@ -88,13 +101,15 @@ wish there was a way to hook into the tokenizer or parser in the
 Python language, e.g. by way of AST or syntax-macros, but that's
 something that will probably never be added to Python.
 
-The idea for this library though, is just because I think (regular)
-Python should have something like this that isn't some huge computer
-algebra system that's gigabytes to install.
+The motivation for this library is just that I think (regular) Python
+should have something like this too, without having to use the
+gigantic system that is SageMath.
 
 * API Documentation
 
-[todo: docstrings?]
+[TODO: I've not updated this in a long time.]
+
+[TODO: docstrings?]
 
 What currently works:
 
