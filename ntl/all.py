@@ -23,6 +23,5 @@ from .ntl_mat_ZZ_pE import *
 from .ntl_mat_GF2 import *
 from .ntl_mat_GF2E import *
 
-from .api import ZZ
+from .api import ZZ, GF2, GF2X
 
-GF2X = PyGF2X_Class()

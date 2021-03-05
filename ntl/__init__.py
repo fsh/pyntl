@@ -1,2 +1,3 @@
 
-from .api import ZZ
+from .api import ZZ, GF2, GF2X
+

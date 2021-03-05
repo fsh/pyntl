@@ -158,9 +158,9 @@ cdef class PyCTYPE_Context(object):
 
 cpdef PyCTYPE_Ring(arg)
 
-#ELIF CTYPE == "ZZ"
+#ELSE
 
-cdef class PyZZ_Class():
+cdef class PyCTYPE_Class():
   pass
 
 #ENDIF
@@ -307,6 +307,10 @@ cdef class PyZZ_Class():
     return res
 
 #ELIF CTYPE == "GF2"
+
+cdef class PyGF2_Class():
+  def __init__(PyZZ_Class self):
+    pass
 
 #ENDIF
 
