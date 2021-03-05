@@ -226,12 +226,16 @@ cdef class PyCTYPE_Class():
     #IF CTYPE == "GF2X"
     if kind == 'sparse':
       n = <long>deg
+      sig_on()
       _ntlCTYPE_BuildSparseIrred(res.val, n)
+      sig_off()
       return res
     #ENDIF
     if kind == 'default':
       n = <long>deg
+      sig_on()
       _ntlCTYPE_BuildIrred(res.val, n)
+      sig_off()
       return res
 
     cdef PyCTYPE irr
@@ -244,7 +248,9 @@ cdef class PyCTYPE_Class():
     if deg.ctxt is not self.ctxt:
       raise ValueError("modulus mismatch")
     #ENDIF
+    sig_on()
     _ntlCTYPE_BuildRandomIrred(res.val, irr.val)
+    sig_off()
     return res
 
   #ENDIF
@@ -557,7 +563,11 @@ cdef class PyCTYPE():
     #IF HASCONTEXT
     self.ctxt.restore()
     #ENDIF
-    return _ntlCTYPE_IterIrredTest(self.val)
+    cdef bint res
+    sig_on()
+    res = _ntlCTYPE_IterIrredTest(self.val)
+    sig_off()
+    return res
     #ENDIF
   
   
