@@ -202,7 +202,7 @@ cdef class PyCTYPE(object):
 
   cdef bint _init_lift(PyCTYPE self, object arg)
   cdef bint _init_proj(PyCTYPE self, object arg)
-
+  cdef bint _init_from_seq(PyCTYPE self, arg)
 
 
 #FILE ntl_CTYPE.pyx
@@ -281,6 +281,11 @@ cdef class PyCTYPE_Context():
   def P(PyCTYPE_Context self):
     return PyCTYPEX_Class(self)
 
+  #IF EXTENSION
+  @property
+  def X(PyCTYPE_Context self):
+    return PyCTYPE(self, [0,1])
+  #ENDIF
 
 cpdef PyCTYPE_Ring(arg):
   cdef PyBASETYPE m = <PyBASETYPE>arg if isinstance(arg, PyBASETYPE) else PyBASETYPE(arg)
@@ -656,12 +661,28 @@ cdef class PyCTYPE(object):
     return res
   #ENDIF
 
+  cdef bint _init_from_seq(PyCTYPE self, arg):
+    #IF not EXTENSION
+    return False # XXX
+    #ELSE
+    if not isinstance(arg, Sequence):
+      return False
+
+    #IF SUBDOUBLE
+    cdef PyBASETYPE base = PyBASETYPE(self.ctxt._mod.ctxt, arg)
+    #ELSE
+    cdef PyBASETYPE base = PyBASETYPE(arg)
+    #ENDIF
+    _ntlCTYPE_conv(self.val, base.val)
+    return True
+    #ENDIF
+
   cdef bint _init_lift(PyCTYPE self, object arg):
     assert False
 
   # projected init: restricted <-- general
   #
-  # The only exception is GF2 -> ZZ
+  # The only exception is that ZZ can swallow GF2.
   # ZZ <-- int, GF2
   # ZZ_p <-- int, ZZ
   # ZZ_pE <-- int, ZZ, ZZ_p, ZZ_pX
@@ -749,6 +770,8 @@ cdef class PyCTYPE(object):
       return
     #ENDIF
     if self._init_proj(arg):
+      return
+    if self._init_from_seq(arg):
       return
     raise TypeError("conversion failed")
 
