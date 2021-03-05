@@ -16,5 +16,10 @@ class ZRing(PyZZ_Class):
   def P(self):
     return PyZZX_Class()
 
+  def __getattr__(self, k):
+    if hasattr(PyZZ, k):
+      return getattr(PyZZ, k)
+    raise AttributeError(f"no such attribute: {k}")
+
 ZZ = ZRing()
 

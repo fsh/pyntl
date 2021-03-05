@@ -75,6 +75,8 @@ cdef extern from "ntl_wrap.h":
 
   void _ntlCTYPE_negate "negate"(CTYPE_c&, const CTYPE_c&)
   void _ntlCTYPE_negate "negate"(CTYPE_c, CTYPE_c)
+  void add(CTYPE_c&, const CTYPE_c&, const CTYPE_c&)
+  void add(CTYPE_c&, const CTYPE_c&, long)
   void _ntlCTYPE_add "add"(CTYPE_c&, const CTYPE_c&, const CTYPE_c&)
   void _ntlCTYPE_sub "sub"(CTYPE_c&, const CTYPE_c&, const CTYPE_c&)
   void _ntlCTYPE_mul "mul"(CTYPE_c&, const CTYPE_c&, const CTYPE_c&)
@@ -87,6 +89,7 @@ cdef extern from "ntl_wrap.h":
   void _ntlCTYPE_rem "rem"(CTYPE_c&, const CTYPE_c&, const CTYPE_c&)
   long _ntlCTYPE_rem "rem"(const CTYPE_c&, long)
 
+  void LeftShift(CTYPE_c&, const CTYPE_c&, long n)
   void _ntlCTYPE_LeftShift "LeftShift"(CTYPE_c&, const CTYPE_c&, long n)
   void _ntlCTYPE_RightShift "RightShift"(CTYPE_c&, const CTYPE_c&, long n)
 
@@ -490,6 +493,24 @@ cdef class PyCTYPE(object):
     if res._init_bytes(data, endian):
       return res
     return None
+
+  @staticmethod
+  def from_bits(data, order='lsb'):
+    cdef long i
+    #MACRO CDEF_RES()
+    if order == 'lsb' or order == 'little':
+      for bit in data:
+        if bit:
+          SetBit(res.val, i)
+        i += 1
+    elif order == 'msb' or order == 'big':
+      for bit in data:
+        LeftShift(res.val, res.val, 1)
+        if bit:
+          add(res.val, res.val, 1)
+    else:
+      raise ValueError("order must be one of 'lsb', 'msb', 'big', or 'little'")
+    return res
   
   cdef bint _init_bytes(PyZZ self, bytes data, str endian):
     cdef unsigned char *p
@@ -527,9 +548,9 @@ cdef class PyCTYPE(object):
     """
     return NumBits(self.val)
 
-  def bits(self, order='lsb', size=None):
+  def bits(self, order='lsb', width=None):
     cdef long n = self.nbits()
-    cdef long high = n if size is None else size
+    cdef long high = n if width is None else width
     cdef long take = min(high, n)
     cdef long i
     if order == 'lsb' or order == 'little':
