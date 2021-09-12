@@ -279,8 +279,12 @@ cdef class PyCTYPE():
     return res
 
   def __rmul__(PyCTYPE self, _arg):
-    # Commutative.
-    return self.__mul__(_arg)
+    #MACRO CONVERT_ARG()
+    #MACRO CDEF_RES()
+    sig_on()
+    _ntlCTYPE_mul(res.val, arg.val, self.val)
+    sig_off()
+    return res
 
   def __matmul__(PyCTYPE self, _arg):
     #MACRO CONVERT_ARG()
