@@ -10,23 +10,15 @@ here and there according to how I see fit.
 
 * Status
 
-- Work in progress.
-
-- So far it's just basic wrapping and interaction of five "base
-  rings," their univariate polynomials, vectors and matrices over
-  them.
-  
 - True alpha: proof-of-concept level of code quality, API changes over
   night, Python will core dump on anything unexpected.
-
-- =lzz_p= related types not wrapped yet. No current plans to wrap any
-  of the floating precision types.
-
-- Vector and matrix functionality is minimal (WIP), and will probably
-  never be as good or convenient as numpy's.
-
-- Few of the actual meaty useful number theoretic algorithms are
-  interfaced yet.
+- So far it's just basic wrapping and interaction of five "base rings," their
+  univariate polynomials, vectors and matrices over them.
+- =lzz_p= and related types not wrapped yet. No current plans to wrap any of the
+  floating precision types?
+- Vector and matrix functionality is minimal, and will probably never be as
+  convenient as =numpy=.
+- Few of the actual meaty useful number theoretic algorithms are interfaced yet.
 
 * Basic Usage
 
@@ -37,27 +29,26 @@ here and there according to how I see fit.
 
   # ZZ is the ring of integers and the main convenience interface.
 
-  # ZZ has some extra functionality to work directly with the number's
-  # bits:
+  # ZZ has some extra functionality to work directly with the number's bits:
   assert ZZ(0xffff)[8::2] == 0x5500
 
   # ZZ/n represents the quotient ring ℤ/nℤ.
-  R = ZZ/17
+  F = ZZ/17
 
   # Getting elements in this ring:
-  a = R(5)
+  a = F(5)
 
   print("regular arithmetic:", a**512 * (a - 1))
   print("division modulo 17:", a/6)
 
   # Polynomial rings are made with `.P` or `.Polynomial`:
 
-  Rx = R.P # Polynomials over F.
+  Fx = F.P # Polynomials over F.
 
-  # Lists can be converted to polynomials, constant term first, lead
-  # term last. So [3,2,1] represents 3 + 2*x + x**2.
+  # Internally polynomials are like vectors with constant term first, lead term
+  # last. So [3,2,1] represents 3 + 2*x + x**2.
 
-  x = Rx([0, 1]) # Defining the polynomial `x`.
+  x = Fx([0, 1]) # Defining the polynomial `x`.
 
   P = (x**2 + 2) * (x - 1)
   Q = (x**7 - 1) * (x**2 - 1)
@@ -68,13 +59,26 @@ here and there according to how I see fit.
 
   assert P[1:3] == P[1] + P[2] * x
 
-  # Polynomials and extensions over GF2 also have a lot of convenience
-  # functionality for treating them as "vectors of bits representing
-  # integers."
+  # A specialization exist for polynomials over GF2. They are accessed through
+  # `GF2.P`. Polynomials and extensions over GF2 also have a lot of convenience
+  # functionality for treating them as "vectors of bits representing integers"
+  # because in cryptography that's usually how they're used practically.
 
   p = GF2.P(0xb) # 1 + x**2 + x**3
 
   assert p + 0xb == 0
+
+  # Basic matrices and vector support also works, although a lot of convenience
+  # is lacking. They are accessed through `.M` or `.V`.
+
+  Fm = (ZZ/5).M
+  I = Fm.identity(3)
+  A = Fm([ [1,0,0], [2,1,0], [1,1,3] ])
+
+  assert A**20 == I
+
+  assert A[2,2] == 3
+  assert A[:2,:2]**5 == (ZZ/5).identity(2)
 #+end_src
 
 * Why Not Just Use SageMath?
@@ -82,8 +86,8 @@ here and there according to how I see fit.
 Actually, you're right! If you need anything in this library, you are
 probably better off using Sage instead.
 
-There's simply no comparison. Sage also embeds the FLINT library,
-which I believe is somewhat leaner for small moduli.
+There's simply no comparison. Sage also embeds the FLINT library, which I
+believe is somewhat leaner for small word-sized moduli.
 
 Also, Sage isn't merely a [[https://doc.sagemath.org/html/en/reference/spkg/][kitchensink of libraries]], it has several
 special advantages that /cannot/ be replicated in regular CPython by
@@ -101,118 +105,16 @@ wish there was a way to hook into the tokenizer or parser in the
 Python language, e.g. by way of AST or syntax-macros, but that's
 something that will probably never be added to Python.
 
-The motivation for this library is just that I think (regular) Python
-should have something like this too, without having to use the
-gigantic system that is SageMath.
+The motivation for this library is just that I think (regular) Python /ought to
+have/ basic number theoretic integer functionality, without having to resort to
+a gigasystem like SageMath.
 
 * API Documentation
 
-[TODO: I've not updated this in a long time.]
+This is largely missing, because for now I'm just prototyping and concentrating
+on actually making the basics work. I'm still not sure how I want the extension
+library backend to look.
 
-[TODO: docstrings?]
-
-What currently works:
-
-- additive arithmetic and multiplication for all rings (=+=, =-=, =*=).
-- exponentiation for all rings except vectors. Negative exponentiation
-  only for finite rings.
-- finite rings have inverse (=~=) and true division (=/=). Division
-  with infinite rings works as a /checked/ division, failing if the
-  division is not exact.
-- infinite rings have remainder (=%=) and quotient (=//=) (including
-  =divrem()=).
-- infinite rings also have shift operators (=<<= and =>>=).
-- only the integers are ordered (=<= ~<=~ and so on). Equality and
-  inequality works for all types.
-
-Quirks and conveniences:
-
-- =GF2X= ($\mathbb{F}_2[X]$) are made to work like integers. That is,
-  combining a polynomial with an integer in some way (e.g.
-  arithmetic), the integer will be interpreted as a polynomial in the
-  natural way (more significant bits correspond to higher exponent
-  coefficient). Usually this is what you (at least, I) want when
-  working with polynomials over GF(2), e.g. CRC sums and the like.
-  Merely projecting integers down to $\mathbb{F}_2$ (i.e. discaring
-  all but the least bit) is not very interesting.
-- Z_p lifts to ZZ, GF2E lifts to GF2X, Z_pE lifts to Z_pX.
-- ZZX extended GCD is weird (look into this).
-
-** ZZ
-
-[todo]
-
-** Finite scalar rings
-
-[todo]
-
-** Polynomials
-
-[todo]
-
-P, Q ∈ RX
-
-- RX.monomial(deg)
-
-  Returns the polynomial ~X**deg~ in the given ring.
-
-- RX.random(deg, monic=False)
-
-  Returns a random polynomial in the given ring.
-
-  *Finite characteristic only.*
-  
-- RX.irreducible(deg, kind='default')
-
-  Gives an irreducible polynomial.
-
-  - ~kind="default"~ uses NTL's default way of building polynomials.
-    ~deg~ is interpreted as the integer degree.
-  - ~kind="sparse"~ is only available for GF2X and gives the first
-    polynomial polynomial with fewest and lowest terms.
-  - ~kind="random"~ uses a given irreducible polynomial (~deg~
-    parameter) to build a another random irreducible polynomial of the
-    same degree. If ~deg~ is an integer, it will use ~RX(deg,
-    'default')~.
-
-  *Finite characteristic only.* (For now.)
-
-- P(x), len(P), ~P<<n~, ~P>>n~
-- lift()
-- diff(), reverse(n=0), truncate(n)
-- lead_coeff(), constant()
-- content(), primitive()
-- P.is_monic() -> bool
-
-  Tests whether ~P~ is monic. Equivalent to ~P.lead_coeff().is_one()~.
-
-- P.make_monic() -> poly
-
-  Forces the polynomial to be monic by multiplying by ~1/P.lead_coeff()~.
-
-  *Finite characteristic only.*
-
-- P.is_irreducible(method=0) -> bool
-
-  Tests whether ~P~ is irreducible.
-
-  The method argument is ignored for now.
-
-  *Finite characteristic only.*
-
-- P.factor(method='CanZass', verbose=False) -> [(poly, int)]
-
-  Factors a polynomial into irreducible factors.
-
-  Returns a list of tuple pairs giving the factor and its multiplicity.
-
-  The ~method~ argument is ignored for now. The ~verbose~ flag is
-  passed on to NTL.
-
-  *Finite characteristic only.*
-  
-** Vectors
-[todo]
-** Matrices
-[todo]
-
+There's been some effort made to make the C-extension types as lightweight as
+possible (more lightweight than Sage's, but Sage wins anyway since it compiles
+its own CPython), but I'm not sure this is the right approach.

@@ -32,7 +32,7 @@ ext = Extension(
 setup(
   name='pyntl',
   description="Python bindings for the NTL library",
-  version='0.0.6',
+  version='0.0.7',
   author="Frank S. Hestvik",
   author_email="tristesse@gmail.com",
   url="https://gitlab.com/franksh/pyntl",

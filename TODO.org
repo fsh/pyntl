@@ -1,21 +1,22 @@
 
 * TODO multithreading: AvailableThreads(), SetNumThreads()
 * TODO documentation
-* TODO improve matrix wrappers
+* STRT improve matrix wrappers
 * DONE init poly/vec/mat from lists
-* TODO poly/vec/mat slice indexing
+* DONE poly/vec/mat slice indexing
 * DONE generic power for ZZX
 * TODO better template system (just leverage gcc -E?)
 * TODO any_to_pythonstring -> PyString_from_any
 * TODO options for formatted output
 * DONE ZZ_from_PyLong
-* CANCELLED REPTYPE_from_PyObject? Fix the ugly mess that is type conversions.
+* KILL CANCELLED REPTYPE_from_PyObject? Fix the ugly mess that is type conversions.
 * DONE assert that modulus is the same for modtypes
 * TODO indexing/slicing of integers to access bits
 * DONE prime generation/testing
 * DONE irreducible polynomial testing
 * TODO irreducible polynomial generation
-* TODO LLL for ZZ matrices
+* STRT LLL for ZZ matrices
+More options? Also expose BKZ.
 * TODO smooth number test?
 * TODO multiplicative group utility stuff (order, bsg, pohlig-hellman, etc.)
 * TODO limit python ints in combination with NTL types to C longs?
