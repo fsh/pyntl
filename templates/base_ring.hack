@@ -232,6 +232,7 @@ from .ntl_CTYPEX cimport PyCTYPEX, PyCTYPEX_Class
 
 #IF HASCONTEXT
 from .ntl_mat_CTYPE cimport Pymat_CTYPE_Class
+from .ntl_vec_CTYPE cimport Pyvec_CTYPE_Class
 
 cdef class PyCTYPE_Context():
 
@@ -284,6 +285,10 @@ cdef class PyCTYPE_Context():
   @property
   def M(PyCTYPE_Context self):
     return Pymat_CTYPE_Class(self)
+
+  @property
+  def V(PyCTYPE_Context self):
+    return Pyvec_CTYPE_Class(self)
 
   #IF EXTENSION
   @property

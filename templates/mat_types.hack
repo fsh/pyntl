@@ -32,6 +32,7 @@ REPLACEMENTS.update(
   {x: eval(x)
    for x in 'CTYPE BASETYPE SELF_INIT SELF_ARG'.split()})
 
+vec_BASETYPE = "vec_" + BASETYPE
 
 #FILE ntl_CTYPE.pxd
 
@@ -107,6 +108,10 @@ cdef class PyCTYPE(object):
 
   cdef PyCTYPE _submatrix(PyCTYPE self, slice rows, slice cols)
   cdef PyBASETYPE _element(self, long _r, long _c)
+  cdef Pyvec_BASETYPE _vec_mul_right(PyCTYPE self, Pyvec_BASETYPE arg)
+  cdef Pyvec_BASETYPE _vec_mul_left(PyCTYPE self, Pyvec_BASETYPE arg)
+  cdef Pyvec_BASETYPE _subvec_row(PyCTYPE self, long row, slice cols)
+  cdef Pyvec_BASETYPE _subvec_col(PyCTYPE self, long col, slice rows)
 
 cdef class PyCTYPE_Class(object):
   #IF HASCONTEXT
@@ -263,18 +268,16 @@ cdef class PyCTYPE():
         if isinstance(b, slice):
           return self._submatrix(a,b)
         else:
-          i = _check_index(self.val.NumCols(), b)
-          return self._submatrix(a, slice(i, i+1))
+          return self._subvec_col(b, a)
       else:
         if isinstance(b, slice):
-          return self._submatrix(slice(a,a+1), b)
+          return self._subvec_row(a, b)
         else:
           return self._element(a, b)
     if isinstance(_key, slice):
       return self._submatrix(_key, slice(None))
     else:
-      i = _check_index(self.val.NumRows(), _key)
-      return self._submatrix(slice(i, i+1), slice(None))
+      return self._subvec_row(_key, slice(None))
 
   cdef PyBASETYPE _element(self, long _r, long _c):
     cdef long r = _check_index(self.val.NumRows(), _r)
@@ -315,8 +318,48 @@ cdef class PyCTYPE():
   #   return hash_ZZX(self.val)
   #   #ENDIF
   # #ENDIF
-  
+
+  cdef Pyvec_BASETYPE _subvec_row(PyCTYPE self, long row, slice cols):
+    row = _check_index(self.val.NumRows(), row)
+    cdef long a, b, s
+    a,b,s = cols.indices(self.ncols())
+    #MACRO CDEF_RES(vec_BASETYPE)
+    res.val.SetLength((b-a)//s)
+    cdef long j = 0
+    for i in range(a,b,s):
+      res.val[j] = self.val[row][i]
+      j += 1
+    return res
+
+  cdef Pyvec_BASETYPE _subvec_col(PyCTYPE self, long col, slice rows):
+    col = _check_index(self.val.NumCols(), col)
+    cdef long a, b, s
+    a,b,s = rows.indices(self.nrows())
+    #MACRO CDEF_RES(vec_BASETYPE)
+    res.val.SetLength((b-a)//s)
+    cdef long j = 0
+    for i in range(a,b,s):
+      res.val[j] = self.val[i][col]
+      j += 1
+    return res
+
+  cdef Pyvec_BASETYPE _vec_mul_left(PyCTYPE self, Pyvec_BASETYPE arg):
+    #MACRO CDEF_RES(vec_BASETYPE)
+    sig_on()
+    _ntlCTYPE_mul(res.val, arg.val, self.val)
+    sig_off()
+    return res
+
+  cdef Pyvec_BASETYPE _vec_mul_right(PyCTYPE self, Pyvec_BASETYPE arg):
+    #MACRO CDEF_RES(vec_BASETYPE)
+    sig_on()
+    _ntlCTYPE_mul(res.val, self.val, arg.val)
+    sig_off()
+    return res
+
   def __mul__(PyCTYPE self, _arg):
+    if isinstance(_arg, Pyvec_BASETYPE):
+      return self._vec_mul_left(_arg)
     #MACRO CONVERT_ARG()
     #MACRO CDEF_RES()
     sig_on()
@@ -325,6 +368,8 @@ cdef class PyCTYPE():
     return res
 
   def __rmul__(PyCTYPE self, _arg):
+    if isinstance(_arg, Pyvec_BASETYPE):
+      return self._vec_mul_right(_arg)
     #MACRO CONVERT_ARG()
     #MACRO CDEF_RES()
     sig_on()
