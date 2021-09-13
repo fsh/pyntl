@@ -306,13 +306,6 @@ cdef class PyCTYPE():
       r += 1
     return res
 
-  # #IF CTYPE == "ZZ_pX"
-  # def lift(PyCTYPE self):
-  #   cdef PyZZX res = PyZZX.__new__(PyZZX)
-  #   _ntlCTYPE_conv(res.val, self.val)
-  #   return 
-  # #ENDIF
-
   # #IF CTYPE == "ZZX" or CTYPE == "ZZ_pX"
   # def __hash__(PyCTYPE self):
   #   #IF HASCONTEXT
@@ -413,5 +406,12 @@ cdef class PyCTYPE():
     sig_on()
     _ntl_LLL(det2, res.val, a, b, verbose)
     sig_off()
+    return res
+  #ENDIF
+
+  #IF CTYPE == "mat_GF2" or CTYPE == "mat_ZZ_p"
+  def lift(PyCTYPE self):
+    cdef Pymat_ZZ res = Pymat_ZZ.__new__(Pymat_ZZ)
+    _ntlCTYPE_conv(res.val, self.val)
     return res
   #ENDIF
