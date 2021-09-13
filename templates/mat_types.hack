@@ -69,6 +69,9 @@ cdef extern from "ntl_wrap.h":
   void _ntlCTYPE_mul "mul"(vec_BASETYPE_c&, const CTYPE_c&, const vec_BASETYPE_c&)
   void _ntlCTYPE_mul "mul"(vec_BASETYPE_c&, const vec_BASETYPE_c&, const CTYPE_c&)
 
+  void _ntlCTYPE_power "power"(CTYPE_c&, const CTYPE_c&, long e)
+  void _ntlCTYPE_power "power"(CTYPE_c&, const CTYPE_c&, const ZZ_c&)
+
   void _ntlCTYPE_determinant "determinant"(CTYPE_c&, const CTYPE_c&, const CTYPE_c&)
   void _ntlCTYPE_transpose "transpose"(CTYPE_c&, const CTYPE_c&, long)
 
@@ -102,7 +105,8 @@ cdef class PyCTYPE(object):
   # cpdef bint is_zero(PyCTYPE self)
   # cpdef bint is_one(PyCTYPE self)
 
-
+  cdef PyCTYPE _submatrix(PyCTYPE self, slice rows, slice cols)
+  cdef PyBASETYPE _element(self, long _r, long _c)
 
 cdef class PyCTYPE_Class(object):
   #IF HASCONTEXT
@@ -129,16 +133,7 @@ cdef class PyCTYPE_Class():
     #MACRO SELF_INIT
     pass
 
-  # #IF CTYPE != "ZZX"
-  # def random(self, long deg, monic=False):
-  #   if monic:
-  #     return self.random(deg-1, False) + self.monomial(deg-1)
-  #   #MACRO CDEF_RES()
-  #   sig_on()
-  #   _ntlCTYPE_random(res.val, deg)
-  #   sig_off()
-  #   return res
-  # #ENDIF
+  # todo: random()
 
   def identity(self, long n):
     #MACRO CDEF_RES()
@@ -152,6 +147,13 @@ cdef class PyCTYPE_Class():
     return PyCTYPE(arg)
     #ENDIF
 
+
+cdef long _check_index(long n, long i) except *:
+  if i < 0:
+    i = n + i
+  if i < 0 or i >= n:
+    raise IndexError("index out of bounds")
+  return i
 
 
 cdef class PyCTYPE():
@@ -167,7 +169,7 @@ cdef class PyCTYPE():
     if isinstance(arg, Pymat_ZZ):
       tmp = <Pymat_ZZ>arg
       if self.val.NumRows() > 0 and (tmp.val.NumRows() != self.val.NumRows() or tmp.val.NumCols() != self.val.NumCols()):
-        raise ValueError("vector length mismatch")
+        raise ValueError("matrix size mismatch")
       _ntlCTYPE_conv(self.val, tmp.val)
       return True
     #ENDIF
@@ -178,8 +180,8 @@ cdef class PyCTYPE():
     cdef PyCTYPE tmp
     if isinstance(arg, PyCTYPE):
       tmp = <PyCTYPE>arg
-      if tmp.val.NumRows() != self.val.NumRows() or tmp.val.NumCols() != self.val.NumCols():
-        raise ValueError("matrix size mismatch")
+      # if tmp.val.NumRows() != self.val.NumRows() or tmp.val.NumCols() != self.val.NumCols():
+      #   raise ValueError("matrix size mismatch")
       #IF HASCONTEXT
       if tmp.ctxt is not self.ctxt:
         raise TypeError("scalar modulus does not match")
@@ -246,13 +248,57 @@ cdef class PyCTYPE():
 
   def __len__(self):
     return self.val.NumRows()
-  
-  def __getitem__(self, _key):
-    pass
 
-    # MACRO CDEF_RES(BASETYPE)
-    # res.val = self.val[idx]
-    # return res
+  def nrows(self):
+    return self.val.NumRows()
+
+  def ncols(self):
+    return self.val.NumCols()
+
+  def __getitem__(PyCTYPE self, _key):
+    cdef long i
+    if isinstance(_key, tuple):
+      a,b = _key
+      if isinstance(a, slice):
+        if isinstance(b, slice):
+          return self._submatrix(a,b)
+        else:
+          i = _check_index(self.val.NumCols(), b)
+          return self._submatrix(a, slice(i, i+1))
+      else:
+        if isinstance(b, slice):
+          return self._submatrix(slice(a,a+1), b)
+        else:
+          return self._element(a, b)
+    if isinstance(_key, slice):
+      return self._submatrix(_key, slice(None))
+    else:
+      i = _check_index(self.val.NumRows(), _key)
+      return self._submatrix(slice(i, i+1), slice(None))
+
+  cdef PyBASETYPE _element(self, long _r, long _c):
+    cdef long r = _check_index(self.val.NumRows(), _r)
+    cdef long c = _check_index(self.val.NumCols(), _c)
+    #MACRO CDEF_RES(BASETYPE)
+    res.val = self.val[r][c]
+    return res
+
+  cdef PyCTYPE _submatrix(PyCTYPE self, slice rows, slice cols):
+    cdef long r_a, r_b, r_s
+    cdef long c_a, c_b, c_s
+    r_a,r_b,r_s = rows.indices(self.nrows())
+    c_a,c_b,c_s = cols.indices(self.ncols())
+    #MACRO CDEF_RES()
+    res.val.SetDims((r_b-r_a)//r_s, (c_b-c_a)//c_s)
+    cdef long r, c
+    r = 0
+    for i in range(r_a,r_b,r_s):
+      c = 0
+      for j in range(c_a,c_b,c_s):
+        res.val[r][c] = self.val[i][j]
+        c += 1
+      r += 1
+    return res
 
   # #IF CTYPE == "ZZ_pX"
   # def lift(PyCTYPE self):
@@ -294,3 +340,12 @@ cdef class PyCTYPE():
     sig_off()
     return res
 
+  def __pow__(PyCTYPE self, _exp, _mod):
+    if _mod is not None:
+      return NotImplemented
+    cdef PyZZ exp = PyZZ._convert_arg_zz(_exp)
+    #MACRO CDEF_RES()
+    sig_on()
+    _ntlCTYPE_power(res.val, self.val, exp.val)
+    sig_off()
+    return res

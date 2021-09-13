@@ -230,8 +230,8 @@ from .ntl_BASETYPE cimport *
 from .ntl_CTYPEX cimport PyCTYPEX, PyCTYPEX_Class
 
 
-
 #IF HASCONTEXT
+from .ntl_mat_CTYPE cimport Pymat_CTYPE_Class
 
 cdef class PyCTYPE_Context():
 
@@ -280,6 +280,10 @@ cdef class PyCTYPE_Context():
   @property
   def P(PyCTYPE_Context self):
     return PyCTYPEX_Class(self)
+
+  @property
+  def M(PyCTYPE_Context self):
+    return Pymat_CTYPE_Class(self)
 
   #IF EXTENSION
   @property
