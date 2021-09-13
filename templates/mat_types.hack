@@ -80,7 +80,10 @@ cdef extern from "ntl_wrap.h":
 
   #IF CTYPE != "mat_ZZ"
   void _ntlCTYPE_conv "conv"(CTYPE_c&, const mat_ZZ_c&)
+  #ELSE
+  long _ntl_LLL "LLL"(ZZ_c&, mat_ZZ_c&, long, long, long)
   #ENDIF
+
   #IF CTYPE == "mat_GF2" or CTYPE == "mat_ZZ_p"
   void _ntlCTYPE_conv "conv"(mat_ZZ_c&, const CTYPE_c&)
   #ENDIF
@@ -394,3 +397,21 @@ cdef class PyCTYPE():
     _ntlCTYPE_power(res.val, self.val, exp.val)
     sig_off()
     return res
+
+  #IF CTYPE == "mat_ZZ"
+  def LLL(PyCTYPE self, delta=None, verbose=False):
+    cdef long a = 3
+    cdef long b = 4
+    if delta is not None:
+      if delta <= 0.25 or delta > 1.0:
+        raise ValueError(f"delta ({delta}) must be in range (0.25,1.0]")
+      a = delta * 16777216
+      b = 16777216
+    #MACRO CDEF_RES()
+    res.val = self.val
+    cdef ZZ_c det2
+    sig_on()
+    _ntl_LLL(det2, res.val, a, b, verbose)
+    sig_off()
+    return res
+  #ENDIF
